@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define MAX_SIZE 100000
 
-//*****************************ÁRVORE DE HUFFMAN*******************************
+#define MAX_SIZE 256
+
+typedef unsigned char byte;
+
+//*******************************ÁRVORE DE HUFFMAN*********************************
 typedef struct huffman_tree {
 	int frequency;
-	unsigned char item; //substituir por *void
+	byte item;
 	struct huffman_tree *left;
 	struct huffman_tree *right;
 	struct huffman_tree *next;
@@ -16,7 +19,7 @@ huffman_tree* create_empty_huffman_tree() {
 	return NULL;
 }
 
-huffman_tree* create_huffman_tree(int frequency, unsigned char item, huffman_tree *left, huffman_tree *right, huffman_tree *next)
+huffman_tree* create_huffman_tree(int frequency, byte item, huffman_tree *left, huffman_tree *right, huffman_tree *next)
 {
 	huffman_tree *new_huffman_tree = (huffman_tree*) malloc(sizeof(huffman_tree));
 	new_huffman_tree->frequency = frequency;
@@ -40,7 +43,7 @@ huffman_tree* enqueue_node(huffman_tree *head_huff_tree, huffman_tree *new_huff_
 		head_huff_tree = new_huff_tree;
 	}
 
-	else if (new_huff_tree->frequency >= head_huff_tree->frequency)
+	else if (head_huff_tree->frequency >= new_huff_tree->frequency)
 	{
 		new_huff_tree->next = head_huff_tree;
 		head_huff_tree = new_huff_tree;
@@ -59,6 +62,8 @@ huffman_tree* enqueue_node(huffman_tree *head_huff_tree, huffman_tree *new_huff_
 		new_huff_tree->next = current->next;
 		current->next = new_huff_tree;
 	}
+
+	return head_huff_tree;
 }
 
 huffman_tree* dequeued_node(huffman_tree *head_huff_tree)
@@ -75,8 +80,16 @@ huffman_tree* dequeued_node(huffman_tree *head_huff_tree)
 	return NULL;
 }
 
+void print_queue(huffman_tree *tree)
+{
+	while(tree!=NULL)
+	{
+		printf("Item: %d (decimal) Frequência: %d\n",tree->item,tree->frequency);
+		tree = tree->next;
+	}
+}
 //*************************************HASH-TABLE**********************************
-typedef struct element {
+/*typedef struct element {
 	char key; //substituir por *void
 	int frequency;
 } element;
@@ -124,57 +137,117 @@ element* get(hash_table *ht,unsigned char key)
 		return NULL;
 	}
 }
-
-//************************************************ARQUIVO***********************************
-int frequency(FILE * caracter,unsigned char text[])
+*/
+//************************************************COMPRESS***********************************
+void frequency_bytes(FILE *file, int *frequency)
 {
-    int frequency = 0,i;
+	int i,size;
+	//Tamanho do arquivo
+	fseek(file, 0, SEEK_END);
+	size = ftell(file);
+	fseek(file, 0, SEEK_SET);
 
-    for(i=0;i<strlen(text);i++)
-    {
-        if(text[i] == caracter) frequency++;
-    }
-
-    return frequency;
-}
-
-void print_queue(huffman_tree *tree)
-{
-	while(tree!=NULL)
+	//Frequencia de cada byte
+	for(i=1;i<=size;i++)
 	{
-		printf("Item: %c / frequência: %d\n",tree->item, tree->frequency);
-		tree = tree->next;
+		frequency[fgetc(file)]++;
 	}
 }
 
-//************************************************PRINCIPAL***********************************
-int main()
+huffman_tree* convert_queue_to_tree(huffman_tree* huff_tree)
 {
-	int i;
-	unsigned char text[MAX_SIZE];
-	fgets(text, MAX_SIZE,stdin);
+	huffman_tree *left;
+	huffman_tree *right;
+	huffman_tree *new_node;
+	huffman_tree *parent;
+	int new_frequency;
 
+	while(huff_tree!=NULL && huff_tree->next!=NULL)
+	{
+		left = huff_tree;
+		right = left->next;
+		new_node = right->next;
+		new_frequency = left->frequency + right->frequency;
+
+		byte caracter_parent = '*';
+		parent = create_huffman_tree(new_frequency,caracter_parent,left,right,NULL);
+		left->next = NULL;
+		right->next = NULL;
+
+		huff_tree = enqueue_node(new_node, parent);
+	}
+
+	return huff_tree;
+
+}
+
+void print_pre_order(huffman_tree *bt)
+{
+	if(bt!=NULL)
+	{
+		//printf("%c ",bt->item);
+		printf("%d ",bt->frequency);
+		print_pre_order(bt->left);
+		print_pre_order(bt->right);
+	}
+}
+void compress(){
+	char address_file[250];
+	int i, frequency[256] = {0};
+	long int size_file = 0;
+	FILE *file;
+	byte item;
 	huffman_tree *tree = create_empty_huffman_tree();
 	huffman_tree *new_huff_tree = NULL;
 
-	hash_table *ht = create_hash_table();
+	printf("Digite o endereço do arquivo: ");
+	scanf("%s",address_file);
+	file = fopen(address_file,"rb");
 
-	for(i=0;i<strlen(text);i++)
-	{
-		//new_huff_tree = create_huffman_tree(frequency(text[i],text),text[i],NULL,NULL,NULL);
-		//tree = enqueue_node(tree,new_huff_tree);
-		put(ht,text[i],frequency(text[i],text));
+	if(file==NULL) printf("Dados inválidos!");
 
-	}
+	else {
+		frequency_bytes(file,frequency);
 
-	for(i=0;i<MAX_SIZE;i++)
-	{
-		if(ht->table[i] != NULL)
+		//Adicionar itens na fila de prioridade
+		for(i=0;i<MAX_SIZE;i++)
 		{
-			new_huff_tree = create_huffman_tree(ht->table[i]->frequency,ht->table[i]->key,NULL,NULL,NULL);
-			tree = enqueue_node(tree,new_huff_tree);
+			item = i;
+			if(frequency[i]>0)
+			{
+				new_huff_tree = create_huffman_tree(frequency[i],item,NULL,NULL,NULL);
+				tree = enqueue_node(tree,new_huff_tree);
+			}
 		}
+
+		//Converter fila em árvore
+		tree = convert_queue_to_tree(tree);
+		print_pre_order(tree);
+		printf("\n");
 	}
 
-	print_queue(tree);
+}
+
+void descompress(){
+
+
+}
+
+//*******************************************MAIN****************************************
+int menu()
+{
+	int command;
+	printf("Escolha uma das opções:\n");
+	printf("1 p/ comprimir ou 2 p/ descomprimir\n");
+	scanf("%d",&command);
+
+	if(command==1) compress();
+	else if(command==2)descompress();
+	else printf("Comando inválido!");
+}
+
+int main()
+{
+	int i;
+	menu();
 }
