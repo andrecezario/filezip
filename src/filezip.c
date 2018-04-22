@@ -31,7 +31,7 @@ int is_empty_huff_tree(huffman_tree *huff_tree)
 	return (huff_tree == NULL);
 }
 
-//Fila de prioridade
+//********************************FILA DE PRIORIDADE*******************************
 huffman_tree* enqueue_node(huffman_tree *head_huff_tree, huffman_tree *new_huff_tree)
 {
 	//Inseri na cabeça
@@ -59,8 +59,6 @@ huffman_tree* enqueue_node(huffman_tree *head_huff_tree, huffman_tree *new_huff_
 		new_huff_tree->next = current->next;
 		current->next = new_huff_tree;
 	}
-	//printf("%c / %d\n",head_huff_tree->item,head_huff_tree->frequency);
-	//printf("%c\n",new_huff_tree->item);
 }
 
 huffman_tree* dequeued_node(huffman_tree *head_huff_tree)
@@ -77,7 +75,7 @@ huffman_tree* dequeued_node(huffman_tree *head_huff_tree)
 	return NULL;
 }
 
-//Hash-table
+//*************************************HASH-TABLE**********************************
 typedef struct element {
 	char key; //substituir por *void
 	int frequency;
@@ -127,7 +125,8 @@ element* get(hash_table *ht,unsigned char key)
 	}
 }
 
-int frequency(unsigned char caracter,unsigned char text[])
+//************************************************ARQUIVO***********************************
+int frequency(FILE * caracter,unsigned char text[])
 {
     int frequency = 0,i;
 
@@ -148,6 +147,7 @@ void print_queue(huffman_tree *tree)
 	}
 }
 
+//************************************************PRINCIPAL***********************************
 int main()
 {
 	int i;
