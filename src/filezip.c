@@ -89,9 +89,9 @@ void print_queue(huffman_tree *tree)
 	}
 }
 //*************************************HASH-TABLE**********************************
-/*typedef struct element {
-	char key; //substituir por *void
-	int frequency;
+typedef struct element {
+	byte key;
+	char binary[8];
 } element;
 
 typedef struct hash_table {
@@ -109,23 +109,23 @@ hash_table* create_hash_table()
 	return new_hash_table;
 }
 
-void put(hash_table *ht,unsigned char key,int frequency)
+void put(hash_table *ht,byte key,char binary[])
 {
-	int h = (int) key;
+	int h = (int) key,i;
 	if(ht->table[h] != NULL)
 	{
-		ht->table[h]->frequency = frequency;
+		for(i=0;i<strlen(binary);i++) ht->table[h]->binary[i] = binary[i];
 	}
 	else
 	{
 		element *new_element = (element*) malloc(sizeof(element));
 		new_element->key = key;
-		new_element->frequency = frequency;
+		for(i=0;i<strlen(binary);i++) new_element->binary[i] = binary[i];
 		ht->table[h] = new_element;
 	}
 }
 
-element* get(hash_table *ht,unsigned char key)
+element* get(hash_table *ht,byte key)
 {
 	int h = (int) key;
 	if(ht->table[h] != NULL && ht->table[h]->key == key)
@@ -137,7 +137,6 @@ element* get(hash_table *ht,unsigned char key)
 		return NULL;
 	}
 }
-*/
 //************************************************COMPRESS***********************************
 void frequency_bytes(FILE *file, int *frequency)
 {
@@ -181,12 +180,29 @@ huffman_tree* convert_queue_to_tree(huffman_tree* huff_tree)
 
 }
 
+void build_code_table(hash_table *ht,huffman_tree *huff_tree,char binary[],int size)
+{
+	if(huff_tree->left == NULL && huff_tree->right == NULL) //é uma folha(?)
+	{
+		put(ht,huff_tree->item,binary); //adicione na hash
+	}
+	else
+	{
+		binary[size] = '0';
+		binary[size+1] = '\0';
+		build_code_table(ht,huff_tree->left,binary,size+1);
+		binary[size] = '1';
+		binary[size+1] = '\0';
+		build_code_table(ht,huff_tree->right,binary,size+1);
+	}
+}
+
 void print_pre_order(huffman_tree *bt)
 {
 	if(bt!=NULL)
 	{
-		//printf("%c ",bt->item);
-		printf("%d ",bt->frequency);
+		printf("%c ",bt->item);
+		printf("%d \n",bt->frequency);
 		print_pre_order(bt->left);
 		print_pre_order(bt->right);
 	}
@@ -199,6 +215,7 @@ void compress(){
 	byte item;
 	huffman_tree *tree = create_empty_huffman_tree();
 	huffman_tree *new_huff_tree = NULL;
+	hash_table *ht_code = create_hash_table();
 
 	printf("Digite o endereço do arquivo: ");
 	scanf("%s",address_file);
@@ -222,10 +239,23 @@ void compress(){
 
 		//Converter fila em árvore
 		tree = convert_queue_to_tree(tree);
-		print_pre_order(tree);
-		printf("\n");
-	}
+		//print_pre_order(tree);
 
+		//Sequências de bits na hash
+		char binary[9];
+		build_code_table(ht_code,tree,binary,0);
+
+		//Test
+		 for(i=0;i<MAX_SIZE;i++)
+		{
+			if(ht_code->table[i]!=NULL)
+			{
+				printf("Byte: %d Binary: %s\n",ht_code->table[i]->key,ht_code->table[i]->binary);
+			}
+		}
+
+		//Comprimir arquivo
+	}
 }
 
 void descompress(){
