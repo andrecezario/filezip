@@ -209,37 +209,66 @@ int size_tree(huffman_tree *huff_tree)
 	return size;
 }
 
+/*char set_bit(unsigned char c, int i)
+{
+	unsigned char mask = 1 << i;
+	return mask | c;
+}*/
+
+char set_bit(unsigned char byte, int i)
+{
+	unsigned char mask = 0;
+	mask = 1 << i;
+	return mask | byte;
+}
+
 void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht, int size_tree)
 {
-	int i,j,size,count_code = 0;
+	int i,j,size,shift,count_code = 0,count_bit = 0;
 	unsigned char trash = 0;
 	int old_caracter;
+	unsigned char byte = 0;
 
 	//Tamanho d
 	fseek(file, 0, SEEK_END);
 	size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	for(i=1;i<=size;i++)
+	for(i=0;i<size;i++)
 	{
-		old_caracter = fgetc(file);
+		old_caracter = (int) fgetc(file);
+		//printf("%d",old_caracter);
+		//printf("%s",ht->table[old_caracter]->binary);
 
 		for(j=0;ht->table[old_caracter]->binary[j]!='\0';j++)
 		{
-			fputc(ht->table[old_caracter]->binary[j],file_compress);
+			if(count_bit==8)
+			{
+				fputc(byte,file_compress);
+				byte = 0;
+				count_bit = 0;
+			}
+			if(ht->table[old_caracter]->binary[j]=='1')
+			{
+				shift = 7 - count_bit;
+				byte = set_bit(byte, shift);
+				//byte = set_bit(byte,count_bit);
+			}
+
+			count_bit++;
 			count_code++;
 		}
 	}
 	trash = 8 - (count_code%8);
 
 	//printf("%d %d\n",trash,size_tree);
-	fseek(file_compress, 0, SEEK_SET);
-	unsigned char byte = size_tree >> 8;
+	/*fseek(file_compress, 0, SEEK_SET);
+	byte = size_tree >> 8;
 	trash = trash | byte;
 	fprintf(file_compress, "%c", trash);
 
 	byte = size_tree;
-	fprintf(file_compress, "%c", byte);
+	fprintf(file_compress, "%c", byte);*/
 }
 
 void write_tree_pre_order(FILE *file, huffman_tree *huff_tree)
@@ -278,6 +307,7 @@ void compress(){
 
 	else {
 		frequency_bytes(file,frequency);
+		//fclose(file);
 
 		//Adicionar itens na fila de prioridade
 		for(i=0;i<MAX_SIZE;i++)
@@ -297,12 +327,14 @@ void compress(){
 		char binary[10];
 		build_code_table(ht_code,tree,binary,0);
 
-		/*//Test
-		 for(i=0;i<MAX_SIZE;i++)
+		//Test
+		/*int j;
+		for(i=0;i<MAX_SIZE;i++)
 		{
 			if(ht_code->table[i]!=NULL)
 			{
-				printf("Byte: %d Binary: %s\n",ht_code->table[i]->key,ht_code->table[i]->binary);
+				printf("Byte: %c Binary: %s\n",ht_code->table[i]->key,ht_code->table[i]->binary);
+				//for(j=0;ht_code->table[i]->binary[j]!='\0';j++) printf("Binary2: %c\n",ht_code->table[i]->binary[j]); OK
 			}
 		}*/
 
@@ -310,6 +342,7 @@ void compress(){
 		//print_pre_order(tree);
 		printf("\n");
 		//unsigned char *str_tree = (unsigned char *) malloc(sizeof(unsigned char));
+		//file = fopen(address_file,"rb");
 		write_tree_pre_order(file_compress,tree);
 		write_code_compress(file,file_compress,ht_code,size_tree(tree));
 		fclose(file_compress);
