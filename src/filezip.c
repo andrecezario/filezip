@@ -91,7 +91,7 @@ void print_queue(huffman_tree *tree)
 //*************************************HASH-TABLE**********************************
 typedef struct element {
 	byte key;
-	char binary[8];
+	char binary[10];
 } element;
 
 typedef struct hash_table {
@@ -197,29 +197,82 @@ void build_code_table(hash_table *ht,huffman_tree *huff_tree,char binary[],int s
 	}
 }
 
-void print_pre_order(huffman_tree *bt)
+int size = 0; //Arrumar
+int size_tree(huffman_tree *huff_tree)
 {
-	if(bt!=NULL)
+	if(huff_tree!=NULL)
 	{
-		printf("%c ",bt->item);
-		printf("%d \n",bt->frequency);
-		print_pre_order(bt->left);
-		print_pre_order(bt->right);
+		size++;
+		size_tree(huff_tree->left);
+	    size_tree(huff_tree->right);
+	}
+	return size;
+}
+
+void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht, int size_tree)
+{
+	int i,j,size,count_code = 0;
+	unsigned char trash = 0;
+	int old_caracter;
+
+	//Tamanho d
+	fseek(file, 0, SEEK_END);
+	size = ftell(file);
+	fseek(file, 0, SEEK_SET);
+
+	for(i=1;i<=size;i++)
+	{
+		old_caracter = fgetc(file);
+
+		for(j=0;ht->table[old_caracter]->binary[j]!='\0';j++)
+		{
+			fputc(ht->table[old_caracter]->binary[j],file_compress);
+			count_code++;
+		}
+	}
+	trash = 8 - (count_code%8);
+
+	//printf("%d %d\n",trash,size_tree);
+	fseek(file_compress, 0, SEEK_SET);
+	unsigned char byte = size_tree >> 8;
+	trash = trash | byte;
+	fprintf(file_compress, "%c", trash);
+
+	byte = size_tree;
+	fprintf(file_compress, "%c", byte);
+}
+
+void write_tree_pre_order(FILE *file, huffman_tree *huff_tree)
+{
+	if(huff_tree!=NULL)
+	{
+		fputc(huff_tree->item,file);
+		write_tree_pre_order(file,huff_tree->left);
+		write_tree_pre_order(file,huff_tree->right);
 	}
 }
+
 void compress(){
 	char address_file[250];
+	char name_file_compress[250];
 	int i, frequency[256] = {0};
 	long int size_file = 0;
 	FILE *file;
+	FILE *file_compress;
 	byte item;
 	huffman_tree *tree = create_empty_huffman_tree();
 	huffman_tree *new_huff_tree = NULL;
 	hash_table *ht_code = create_hash_table();
 
-	printf("Digite o endereço do arquivo: ");
+	printf("Digite o endereço do arquivo de entrada: ");
 	scanf("%s",address_file);
+	printf("Digite o nome do arquivo de saída: ");
+	scanf("%s",name_file_compress);
+
 	file = fopen(address_file,"rb");
+
+	strcat(name_file_compress,".huff");
+	file_compress = fopen(name_file_compress,"wb");
 
 	if(file==NULL) printf("Dados inválidos!");
 
@@ -239,22 +292,28 @@ void compress(){
 
 		//Converter fila em árvore
 		tree = convert_queue_to_tree(tree);
-		//print_pre_order(tree);
 
 		//Sequências de bits na hash
-		char binary[9];
+		char binary[10];
 		build_code_table(ht_code,tree,binary,0);
 
-		//Test
+		/*//Test
 		 for(i=0;i<MAX_SIZE;i++)
 		{
 			if(ht_code->table[i]!=NULL)
 			{
 				printf("Byte: %d Binary: %s\n",ht_code->table[i]->key,ht_code->table[i]->binary);
 			}
-		}
+		}*/
 
 		//Comprimir arquivo
+		//print_pre_order(tree);
+		printf("\n");
+		//unsigned char *str_tree = (unsigned char *) malloc(sizeof(unsigned char));
+		write_tree_pre_order(file_compress,tree);
+		write_code_compress(file,file_compress,ht_code,size_tree(tree));
+		fclose(file_compress);
+		fclose(file);
 	}
 }
 
