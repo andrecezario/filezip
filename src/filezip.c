@@ -91,7 +91,7 @@ void print_queue(huffman_tree *tree)
 //*************************************HASH-TABLE**********************************
 typedef struct element {
 	byte key;
-	char binary[10];
+	char binary[8];
 } element;
 
 typedef struct hash_table {
@@ -146,7 +146,7 @@ void frequency_bytes(FILE *file, int *frequency)
 	size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	//Frequencia de cada byte
+	//Frequência de cada byte
 	for(i=1;i<=size;i++)
 	{
 		frequency[fgetc(file)]++;
@@ -197,22 +197,16 @@ void build_code_table(hash_table *ht,huffman_tree *huff_tree,char binary[],int s
 	}
 }
 
-int size = 0; //Arrumar
-int size_tree(huffman_tree *huff_tree)
+/*short int size_huffman_tree = 2; //Arrumar
+short int size_tree(huffman_tree *huff_tree)
 {
 	if(huff_tree!=NULL)
 	{
-		size++;
+		size_huffman_tree++;
 		size_tree(huff_tree->left);
 	    size_tree(huff_tree->right);
 	}
-	return size;
-}
-
-/*char set_bit(unsigned char c, int i)
-{
-	unsigned char mask = 1 << i;
-	return mask | c;
+	return size_huffman_tree;
 }*/
 
 char set_bit(unsigned char byte, int i)
@@ -222,14 +216,14 @@ char set_bit(unsigned char byte, int i)
 	return mask | byte;
 }
 
-void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht, int size_tree)
+void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht, short int size_tree)
 {
-	int i,j,size,shift,count_code = 0,count_bit = 0;
+	int i,j,size,shift,count_bit = 0;
 	unsigned char trash = 0;
 	int old_caracter;
 	unsigned char byte = 0;
 
-	//Tamanho d
+	//Tamanho da arquivo
 	fseek(file, 0, SEEK_END);
 	size = ftell(file);
 	fseek(file, 0, SEEK_SET);
@@ -237,8 +231,6 @@ void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht, int si
 	for(i=0;i<size;i++)
 	{
 		old_caracter = (int) fgetc(file);
-		//printf("%d",old_caracter);
-		//printf("%s",ht->table[old_caracter]->binary);
 
 		for(j=0;ht->table[old_caracter]->binary[j]!='\0';j++)
 		{
@@ -252,30 +244,43 @@ void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht, int si
 			{
 				shift = 7 - count_bit;
 				byte = set_bit(byte, shift);
-				//byte = set_bit(byte,count_bit);
 			}
 
 			count_bit++;
-			count_code++;
 		}
 	}
-	trash = 8 - (count_code%8);
 
-	//printf("%d %d\n",trash,size_tree);
-	/*fseek(file_compress, 0, SEEK_SET);
-	byte = size_tree >> 8;
-	trash = trash | byte;
-	fprintf(file_compress, "%c", trash);
+	fputc(byte,file_compress);
 
-	byte = size_tree;
-	fprintf(file_compress, "%c", byte);*/
+	fseek(file_compress, 0, SEEK_SET);
+	trash = 8 - count_bit;
+	trash <<= 5;
+	unsigned char byte_tree_size = size_tree >> 8;
+	unsigned char byte_one =  trash | byte_tree_size;
+	//printf("%u ",byte_one);
+	fputc(byte_one,file_compress);
+	unsigned char byte_two = size_tree;
+	//printf("%u \n",byte_two);
+	fputc(byte_two,file_compress);
 }
 
+short int size_huffman_tree = 0;
 void write_tree_pre_order(FILE *file, huffman_tree *huff_tree)
 {
 	if(huff_tree!=NULL)
 	{
+		if(huff_tree->left == NULL && huff_tree->right == NULL){
+			if(huff_tree->item== '\\' || huff_tree->item== '*'){
+
+				byte aux = '\\';
+			    fputc(aux,file);
+			    size_huffman_tree++;
+			}
+		}
+
+		size_huffman_tree++;
 		fputc(huff_tree->item,file);
+
 		write_tree_pre_order(file,huff_tree->left);
 		write_tree_pre_order(file,huff_tree->right);
 	}
@@ -324,37 +329,29 @@ void compress(){
 		tree = convert_queue_to_tree(tree);
 
 		//Sequências de bits na hash
-		char binary[10];
+		char binary[8];
 		build_code_table(ht_code,tree,binary,0);
 
-		//Test
-		/*int j;
-		for(i=0;i<MAX_SIZE;i++)
-		{
-			if(ht_code->table[i]!=NULL)
-			{
-				printf("Byte: %c Binary: %s\n",ht_code->table[i]->key,ht_code->table[i]->binary);
-				//for(j=0;ht_code->table[i]->binary[j]!='\0';j++) printf("Binary2: %c\n",ht_code->table[i]->binary[j]); OK
-			}
-		}*/
+		//COMPRIMIR ARQUIVO
+		//Reserva os 16 bits para o lixo e tamanho da árvore
+		unsigned char byte = 0;
+		fputc(byte,file_compress);
+		fputc(byte,file_compress);
 
-		//Comprimir arquivo
-		//print_pre_order(tree);
-		printf("\n");
-		//unsigned char *str_tree = (unsigned char *) malloc(sizeof(unsigned char));
-		//file = fopen(address_file,"rb");
+		//Adicionando árvore
 		write_tree_pre_order(file_compress,tree);
-		write_code_compress(file,file_compress,ht_code,size_tree(tree));
+
+		//Adicionando bytes codificados
+		write_code_compress(file,file_compress,ht_code,size_huffman_tree);
+
 		fclose(file_compress);
 		fclose(file);
 	}
 }
-
 void descompress(){
 
 
 }
-
 //*******************************************MAIN****************************************
 int menu()
 {
