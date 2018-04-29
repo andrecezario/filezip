@@ -28,6 +28,8 @@ huffman_tree* create_huffman_tree(int frequency, byte item, huffman_tree *left,
 	new_huffman_tree->left = left;
 	new_huffman_tree->right = right;
 	new_huffman_tree->next = next;
+
+	return new_huffman_tree;
 }
 
 int is_empty_huff_tree(huffman_tree *huff_tree) {
@@ -69,29 +71,10 @@ huffman_tree* enqueue_node(huffman_tree *head_huff_tree,
 	return head_huff_tree;
 }
 
-huffman_tree* dequeued_node(huffman_tree *head_huff_tree) {
-	if (is_empty_huff_tree(head_huff_tree)) {
-		huffman_tree *node = head_huff_tree;
-		head_huff_tree = head_huff_tree->next;
-		node->next = NULL;
-
-		return node;
-	}
-
-	return NULL;
-}
-
-void print_queue(huffman_tree *tree) {
-	while (tree != NULL) {
-		printf("Item: %d (decimal) Frequência: %d\n", tree->item,
-				tree->frequency);
-		tree = tree->next;
-	}
-}
 //*************************************HASH-TABLE**********************************
 typedef struct element {
 	byte key;
-	char binary[8];
+	char binary[9];
 } element;
 
 typedef struct hash_table {
@@ -121,14 +104,14 @@ void put(hash_table *ht, byte key, char binary[]) {
 	}
 }
 
-element* get(hash_table *ht, byte key) {
-	int h = (int) key;
-	if (ht->table[h] != NULL && ht->table[h]->key == key) {
-		return ht->table[h];
-	} else {
-		return NULL;
-	}
-}
+/*element* get(hash_table *ht, byte key) {
+ int h = (int) key;
+ if (ht->table[h] != NULL && ht->table[h]->key == key) {
+ return ht->table[h];
+ } else {
+ return NULL;
+ }
+ }*/
 //************************************************COMPRESS***********************************
 void frequency_bytes(FILE *file, int *frequency) {
 	int i, size;
@@ -168,19 +151,18 @@ huffman_tree* convert_queue_to_tree(huffman_tree* huff_tree) {
 	return huff_tree;
 
 }
-
 void build_code_table(hash_table *ht, huffman_tree *huff_tree, char binary[],
 		int size) {
 	if (huff_tree->left == NULL && huff_tree->right == NULL) //é uma folha(?)
 	{
+		binary[size] = '\0'; //se não, os bits não preenchidos serão adicionados como lixo
 		put(ht, huff_tree->item, binary); //adicione na hash
+
 	} else {
 		binary[size] = '0';
-		binary[size + 1] = '\0';
 		build_code_table(ht, huff_tree->left, binary, size + 1);
 
 		binary[size] = '1';
-		binary[size + 1] = '\0';
 		build_code_table(ht, huff_tree->right, binary, size + 1);
 	}
 }
@@ -192,7 +174,7 @@ char set_bit(unsigned char byte, int i) {
 }
 
 void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht,
-		short int size_tree) {
+		int size_tree) {
 	int i, j, size, shift, count_bit = 0;
 	int old_caracter;
 	unsigned char trash = 0;
@@ -234,10 +216,10 @@ void write_code_compress(FILE *file, FILE *file_compress, hash_table *ht,
 	fputc(byte_two, file_compress);
 }
 
-short int size_huffman_tree = 0;
+int size_huffman_tree = 0;
 void write_tree_pre_order(FILE *file, huffman_tree *huff_tree) {
 	if (huff_tree != NULL) {
-		//Se for uma folha e o item for igual a * ou \,escreva '\\'
+		//Se for uma folha e o item for igual a * ou \ = '\\',escreva '\\'
 		if (huff_tree->left == NULL && huff_tree->right == NULL) {
 			if (huff_tree->item == '\\' || huff_tree->item == '*') {
 
@@ -247,15 +229,13 @@ void write_tree_pre_order(FILE *file, huffman_tree *huff_tree) {
 			}
 		}
 
-		size_huffman_tree++;
 		fputc(huff_tree->item, file);
+		size_huffman_tree++;
 
 		write_tree_pre_order(file, huff_tree->left);
 		write_tree_pre_order(file, huff_tree->right);
 	}
 }
-
-huffman_tree *cambiarra_tree;
 
 void compress() {
 	char address_file[250];
@@ -264,7 +244,7 @@ void compress() {
 	FILE *file;
 	FILE *file_compress;
 	byte item;
-	huffman_tree *tree = create_empty_huffman_tree();
+	huffman_tree *huff_tree = create_empty_huffman_tree();
 	huffman_tree *new_huff_tree = NULL;
 	hash_table *ht_code = create_hash_table();
 
@@ -290,19 +270,16 @@ void compress() {
 			if (frequency[i] > 0) {
 				new_huff_tree = create_huffman_tree(frequency[i], item, NULL,
 				NULL, NULL);
-				tree = enqueue_node(tree, new_huff_tree);
+				huff_tree = enqueue_node(huff_tree, new_huff_tree);
 			}
 		}
 
 		//Converter fila em árvore
-		tree = convert_queue_to_tree(tree);
-
-		//Teste
-		cambiarra_tree = tree;
+		huff_tree = convert_queue_to_tree(huff_tree);
 
 		//Sequências de bits na hash
-		char binary[8];
-		build_code_table(ht_code, tree, binary, 0);
+		char binary[9];
+		build_code_table(ht_code, huff_tree, binary, 0);
 
 		//COMPRIMIR ARQUIVO
 		//Reserva os 16 bits para o lixo e tamanho da árvore
@@ -311,7 +288,7 @@ void compress() {
 		fputc(byte, file_compress);
 
 		//Adicionando árvore
-		write_tree_pre_order(file_compress, tree);
+		write_tree_pre_order(file_compress, huff_tree);
 
 		//Adicionando bytes codificados
 		write_code_compress(file, file_compress, ht_code, size_huffman_tree);
@@ -322,10 +299,32 @@ void compress() {
 }
 
 //**********************************************DECOMPRESS***********************************
-void write_descompress(FILE *file, FILE *file_descompress, huffman_tree *tree,
-		int size_tree, int trash) {
-	int i, j, k, size_file;
-	huffman_tree *aux_tree = tree;
+huffman_tree* search_tree(FILE *file, huffman_tree *huff_tree) {
+	unsigned char byte = getc(file);
+	int condition = 1; //se for um pai
+
+	if (byte == '\\') {
+		byte = getc(file); //pega o próximo, pode se um '*' ou '\'
+		condition = 0;
+
+	} else if (byte != '*') { //é uma folha
+		condition = 0;
+	}
+
+	huff_tree = create_huffman_tree(0, byte, NULL, NULL, NULL);
+
+	if (condition) //é um pai
+	{
+		huff_tree->left = search_tree(file, huff_tree->left);
+		huff_tree->right = search_tree(file, huff_tree->right);
+	}
+	return huff_tree;
+}
+
+void write_descompress(FILE *file, FILE *file_descompress,
+		huffman_tree *huff_tree, int size_tree, int trash) {
+	int i,j,size_file;
+	huffman_tree *aux_tree = huff_tree;
 	unsigned char byte, last_byte;
 
 	//Tamanho da arquivo
@@ -334,18 +333,16 @@ void write_descompress(FILE *file, FILE *file_descompress, huffman_tree *tree,
 	fseek(file, 0, SEEK_SET);
 	fseek(file, 2 + size_tree, SEEK_SET); //posicionar o ponteiro a 2+size_tree bytes
 
-	//printf("Tamanho arquivo: %d\n", size_file);
-
 	//Escrevendo no arquivo
 	for (i = 0; i < size_file - size_tree - 3; i++) { //lemos apenas os bytes do arquivo codificado (-tamanho da árvore -2 bytes iniciais - 1 byte final
 		byte = fgetc(file);
 
-		for (k = 0; k < 8; k++) {
+		for (j = 0; j < 8; j++) {
 
 			if (aux_tree->left == NULL && aux_tree->right == NULL) //é uma folha
 			{
 				fputc(aux_tree->item, file_descompress);
-				aux_tree = tree;
+				aux_tree = huff_tree;
 			}
 
 			if (byte & 128) //1
@@ -376,19 +373,17 @@ void write_descompress(FILE *file, FILE *file_descompress, huffman_tree *tree,
 		if (aux_tree->left == NULL && aux_tree->right == NULL) //é uma folha
 		{
 			fputc(aux_tree->item, file_descompress);
-			aux_tree = tree;
+			aux_tree = huff_tree;
 		}
 	}
 }
 
 void descompress() {
-	int i;
 	char address_file[250];
 	char name_file_descompress[250];
 	FILE *file;
 	FILE *file_descompress;
-	huffman_tree *tree = create_empty_huffman_tree();
-	huffman_tree *new_huff_tree = NULL;
+	huffman_tree *huff_tree = create_empty_huffman_tree();
 
 	printf("Digite o endereço do arquivo de entrada: ");
 	scanf("%s", address_file);
@@ -402,11 +397,7 @@ void descompress() {
 		printf("Dados inválidos!");
 
 	else {
-		//Supondo que já tenhamos a árvore de huffman
-		//CAMBIARRA
-		compress();
-		//print_tree(cambiarra_tree);
-
+		//DESCOMPRIMIR ARQUIVO
 		// Tamanho do lixo
 		int trash, size_tree = 0; //int -> 16 bits
 		unsigned char byte = fgetc(file);
@@ -418,14 +409,13 @@ void descompress() {
 		byte = fgetc(file);
 		size_tree = size_tree | byte;
 
-		//printf("Lixo: %d Tamanho árvore: %d\n", trash, size_tree);
-
-		write_descompress(file, file_descompress, cambiarra_tree, size_tree,
-				trash);
+		//Escrevendo arquivo descomprimido
+		write_descompress(file, file_descompress, search_tree(file, huff_tree),
+				size_tree, trash);
 	}
 }
 //*******************************************MAIN****************************************
-int menu() {
+void menu() {
 	int command;
 	printf("Escolha uma das opções:\n");
 	printf("1 p/ comprimir ou 2 p/ descomprimir\n");
@@ -440,6 +430,5 @@ int menu() {
 }
 
 int main() {
-	int i;
 	menu();
 }
