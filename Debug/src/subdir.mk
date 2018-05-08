@@ -4,12 +4,21 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../src/compress.c \
+../src/data_structure.c \
+../src/descompress.c \
 ../src/filezip.c 
 
 OBJS += \
+./src/compress.o \
+./src/data_structure.o \
+./src/descompress.o \
 ./src/filezip.o 
 
 C_DEPS += \
+./src/compress.d \
+./src/data_structure.d \
+./src/descompress.d \
 ./src/filezip.d 
 
 
