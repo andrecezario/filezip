@@ -9,6 +9,12 @@ C_SRCS += \
 ../src/descompress.c \
 ../src/filezip.c 
 
+O_SRCS += \
+../src/compress.o \
+../src/data_structure.o \
+../src/descompress.o \
+../src/filezip.o 
+
 OBJS += \
 ./src/compress.o \
 ./src/data_structure.o \

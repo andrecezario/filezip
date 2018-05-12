@@ -11,7 +11,7 @@ void frequency_bytes(FILE *file, int *frequency) {
 	size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	//Frequência de cada byte
+	//Frequencia de cada byte
 	for (i = 0; i < size; i++) {
 		frequency[fgetc(file)]++;
 	}
@@ -142,9 +142,11 @@ void compress()
 
 	printf("Digite o endereço do arquivo de entrada: ");
 	getchar();
-	gets(address_file);
+	scanf("%[^\n]s", address_file);
+
 	printf("Digite o nome do arquivo de saída: ");
-	gets(name_file_compress);
+	getchar();
+	scanf("%[^\n]s",name_file_compress);
 
 	file = fopen(address_file, "rb");
 
@@ -152,7 +154,7 @@ void compress()
 	file_compress = fopen(name_file_compress, "wb");
 
 	if (file == NULL)
-		printf("Dados inválidos!");
+		printf("ERRO! Dados inválidos, verifique se o arquivo de entrada foi digitado corretamente e tente novamente.");
 
 	else {
 		frequency_bytes(file, frequency);
@@ -168,10 +170,10 @@ void compress()
 			}
 		}
 
-		//Converter fila em árvore
+		//Converter fila em arvore
 		huff_tree = convert_queue_to_tree(huff_tree);
 
-		//Sequências de bits na hash
+		//Sequencias de bits na hash
 		char binary[9];
 		build_code_table(ht_code, huff_tree, binary, 0);
 
@@ -181,10 +183,9 @@ void compress()
 		fputc(byte, file_compress);
 		fputc(byte, file_compress);
 
-		//Adicionando árvore
+		//Adicionando arvore
 		int *size_tree = (int*) malloc(sizeof(int));
 		*size_tree = 0;
-		//*size_tree = 0;
 		write_tree_pre_order(file_compress, huff_tree, size_tree);
 
 		//Adicionando bytes codificados

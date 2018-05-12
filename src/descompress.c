@@ -10,17 +10,17 @@ huffman_tree* search_tree(FILE *file, huffman_tree *huff_tree)
 	int condition = 1; //se for um pai
 
 	if (byte == '\\') {
-		byte = getc(file); //pega o próximo, pode se um '*' ou '\'
+		byte = getc(file); //pega o proximo, pode se um '*' ou '\'
 		condition = 0;
 
-	} else if (byte != '*') { //é uma folha
+	} else if (byte != '*') { //eh uma folha
 		condition = 0;
 	}
 	unsigned char *result = (unsigned char*) malloc(sizeof(unsigned char));
 	*result = byte;
 	huff_tree = create_huffman_tree(0, result, NULL, NULL, NULL);
 
-	if (condition) //é um pai
+	if (condition) //eh um pai
 	{
 		huff_tree->left = search_tree(file, huff_tree->left);
 		huff_tree->right = search_tree(file, huff_tree->right);
@@ -42,12 +42,12 @@ void write_descompress(FILE *file, FILE *file_descompress,
 	fseek(file, 2 + size_tree, SEEK_SET); //posicionar o ponteiro a 2+size_tree bytes
 
 	//Escrevendo no arquivo
-	for (i = 0; i < size_file - size_tree - 3; i++) { //lemos apenas os bytes do arquivo codificado (-tamanho da árvore -2 bytes iniciais - 1 byte final
+	for (i = 0; i < size_file - size_tree - 3; i++) { //lemos apenas os bytes do arquivo codificado (-tamanho da arvore -2 bytes iniciais - 1 byte final
 		byte = fgetc(file);
 
 		for (j = 0; j < 8; j++) {
 
-			if (aux_tree->left == NULL && aux_tree->right == NULL) //é uma folha
+			if (aux_tree->left == NULL && aux_tree->right == NULL) //e uma folha
 			{
 				fputc(*((unsigned char*)aux_tree->item), file_descompress);
 				aux_tree = huff_tree;
@@ -78,7 +78,7 @@ void write_descompress(FILE *file, FILE *file_descompress,
 			}
 			last_byte = last_byte << 1;
 
-			if (aux_tree->left == NULL && aux_tree->right == NULL) //é uma folha
+			if (aux_tree->left == NULL && aux_tree->right == NULL) //eh uma folha
 			{
 				fputc(*((unsigned char*)aux_tree->item), file_descompress);
 				aux_tree = huff_tree;
@@ -96,31 +96,49 @@ void descompress() {
 
 	printf("Digite o endereço do arquivo de entrada: ");
 	getchar();
-	gets(address_file);
-	printf("Digite o nome do arquivo de saída: ");
-	gets(name_file_descompress);
+	scanf("%[^\n]s", address_file);
 
-	file = fopen(address_file, "rb");
-	file_descompress = fopen(name_file_descompress, "wb");
+	//Verificando extensao
+    int condition = 1,i,j = 4,size = strlen(address_file);
+    char *extension;
+    extension = ".huff";
 
-	if (file == NULL)
-		printf("Dados inválidos!");
+    for(i = size-1; i>=size-5 ; i--,j--)
+        if(address_file[i] != extension[j])
+        	condition = 0;
 
-	else {
-		//DESCOMPRIMIR ARQUIVO
-		// Tamanho do lixo
-		int trash, size_tree = 0; //int -> 16 bits
-		unsigned char byte = fgetc(file);
-		trash = byte >> 5;
+    if(condition)
+    {
+		printf("Digite o nome do arquivo de saída: ");
+		getchar();
+		scanf("%[^\n]s", name_file_descompress);
 
-		// Tamanho da árvore
-		size_tree = byte & 31; //15 = 00011111
-		size_tree = size_tree << 8;
-		byte = fgetc(file);
-		size_tree = size_tree | byte;
+		file = fopen(address_file, "rb");
+		file_descompress = fopen(name_file_descompress, "wb");
 
-		//Escrevendo arquivo descomprimido
-		write_descompress(file, file_descompress, search_tree(file, huff_tree),
-				size_tree, trash);
-	}
+		if (file == NULL)
+			printf("ERRO! Dados inválidos, verifique se o arquivo de entrada foi digitado corretamente e tente novamente.");
+
+		else {
+			//DESCOMPRIMIR ARQUIVO
+			// Tamanho do lixo
+			int trash, size_tree = 0; //int -> 16 bits
+			unsigned char byte = fgetc(file);
+			trash = byte >> 5;
+
+			// Tamanho da arvore
+			size_tree = byte & 31; //15 = 00011111
+			size_tree = size_tree << 8;
+			byte = fgetc(file);
+			size_tree = size_tree | byte;
+
+			//Escrevendo arquivo descomprimido
+			write_descompress(file, file_descompress, search_tree(file, huff_tree),
+					size_tree, trash);
+		}
+    }
+    else
+    {
+    	printf("ERRO! O arquivo não possui a extensão .huff! Não será possível descompactá-lo");
+    }
 }
