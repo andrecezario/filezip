@@ -44,18 +44,18 @@ huffman_tree* convert_queue_to_tree(huffman_tree* huff_tree) {
 
 }
 void build_code_table(hash_table *ht, huffman_tree *huff_tree, char binary[],
-		int size) {
-	if (huff_tree->left == NULL && huff_tree->right == NULL) //é uma folha(?)
+		int indice) {
+	if (huff_tree->left == NULL && huff_tree->right == NULL) //eh uma folha(?)
 	{
-		binary[size] = '\0'; //se não, os bits não preenchidos serão adicionados como lixo
+		binary[indice] = '\0'; //se nao, os bits nao preenchidos serao adicionados como lixo
 		put(ht, huff_tree->item, binary); //adicione na hash
 
 	} else {
-		binary[size] = '0';
-		build_code_table(ht, huff_tree->left, binary, size + 1);
+		binary[indice] = '0';
+		build_code_table(ht, huff_tree->left, binary, indice + 1);
 
-		binary[size] = '1';
-		build_code_table(ht, huff_tree->right, binary, size + 1);
+		binary[indice] = '1';
+		build_code_table(ht, huff_tree->right, binary, indice + 1);
 	}
 }
 
@@ -112,7 +112,7 @@ void write_tree_pre_order(FILE *file, huffman_tree *huff_tree, int *size_tree) {
 	if (huff_tree != NULL) {
 		//Se for uma folha e o item for igual a * ou \ = '\\',escreva '\\'
 		if (huff_tree->left == NULL && huff_tree->right == NULL) {
-			if ( *((unsigned char*)huff_tree->item) == '\\' ||  *((unsigned char*)huff_tree->item) == '*') {
+			if (*((unsigned char*)huff_tree->item) == '\\' ||  *((unsigned char*)huff_tree->item) == '*') {
 
 				unsigned char aux = '\\';
 				fputc(aux, file);
@@ -140,6 +140,9 @@ void compress()
 	huffman_tree *new_huff_tree = NULL;
 	hash_table *ht_code = create_hash_table();
 
+	printf("-----------------------------------------------------------\n");
+	printf("                         COMPRIMIR                         \n");
+	printf("-----------------------------------------------------------\n");
 	printf("Digite o endereço do arquivo de entrada: ");
 	getchar();
 	scanf("%[^\n]s", address_file);
@@ -153,11 +156,15 @@ void compress()
 	strcat(name_file_compress, ".huff");
 	file_compress = fopen(name_file_compress, "wb");
 
-	if (file == NULL)
-		printf("ERRO! Dados inválidos, verifique se o arquivo de entrada foi digitado corretamente e tente novamente.");
-
+	if (file == NULL) {
+		printf("\n*********************************************************\n");
+		printf("[ERRO] Dados inválidos, verifique se o arquivo de entrada "
+				"\nfoi digitado corretamente e tente novamente.");
+		printf("\n*********************************************************");
+	}
 	else {
 		frequency_bytes(file, frequency);
+		printf("......\n");
 
 		//Adicionar itens na fila de prioridade
 		for (i = 0; i < MAX_SIZE; i++) {
@@ -169,13 +176,16 @@ void compress()
 				huff_tree = enqueue_node(huff_tree, new_huff_tree);
 			}
 		}
+		printf("............\n");
 
 		//Converter fila em arvore
 		huff_tree = convert_queue_to_tree(huff_tree);
+		printf("..................\n");
 
 		//Sequencias de bits na hash
 		char binary[9];
 		build_code_table(ht_code, huff_tree, binary, 0);
+		printf("........................\n");
 
 		//COMPRIMIR ARQUIVO
 		//Reserva os 16 bits para o lixo e tamanho da árvore
@@ -187,11 +197,17 @@ void compress()
 		int *size_tree = (int*) malloc(sizeof(int));
 		*size_tree = 0;
 		write_tree_pre_order(file_compress, huff_tree, size_tree);
+		printf("..............................\n");
 
 		//Adicionando bytes codificados
 		write_code_compress(file, file_compress, ht_code, *size_tree);
+		printf("....................................\n");
+		printf("\n*********************************************\n");
+		printf("[SUCESSO] Arquivo comprimido com êxito!");
+		printf("\n*********************************************");
 
 		fclose(file_compress);
 		fclose(file);
 	}
+	printf("\n-----------------------------------------------------------\n");
 }

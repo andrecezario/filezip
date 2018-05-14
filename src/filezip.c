@@ -7,16 +7,27 @@
 
 void menu() {
 	int command;
-	printf("Escolha uma das opções:\n");
-	printf("1 para comprimir ou 2 para descomprimir\n");
-	scanf("%d", &command);
 
-	if (command == 1)
-		compress();
-	else if (command == 2)
-		descompress();
-	else
-		printf("Comando inválido!");
+	while(1)
+	{
+		printf("-----------------------------------------------------------\n");
+		printf("                            FILEZIP                        \n");
+		printf("-----------------------------------------------------------\n");
+		printf("Selecione uma das opções:\n");
+		printf("1 - COMPRIMIR ARQUIVO\n2 - DESCOMPRIMIR ARQUIVO\n3 - SAIR\n");
+		scanf("%d", &command);
+
+		if (command == 1)
+			compress();
+		else if (command == 2)
+			descompress();
+		else if (command == 3) {
+			printf("Bye!\n");
+			break;
+		}
+		else
+			printf("[ERRO] Comando inválido, digite 1,2 ou 3!");
+	}
 }
 
 int main() {

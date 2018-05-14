@@ -37,7 +37,7 @@ huffman_tree* enqueue_node(huffman_tree *head_huff_tree,
 		new_huff_tree->next = head_huff_tree;
 		head_huff_tree = new_huff_tree;
 	}
-	//Se nao, percorre a fila ate achar o de maior frequencia e adiciona
+	//Se nao, percorre a fila ate achar o de maior frequencia e adiciona antes
 	else {
 		huffman_tree *current = head_huff_tree;
 

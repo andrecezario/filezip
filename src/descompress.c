@@ -94,6 +94,9 @@ void descompress() {
 	FILE *file_descompress;
 	huffman_tree *huff_tree = create_empty_huffman_tree();
 
+	printf("-----------------------------------------------------------\n");
+	printf("                         DECOMPRIMIR                         \n");
+	printf("-----------------------------------------------------------\n");
 	printf("Digite o endereço do arquivo de entrada: ");
 	getchar();
 	scanf("%[^\n]s", address_file);
@@ -116,9 +119,12 @@ void descompress() {
 		file = fopen(address_file, "rb");
 		file_descompress = fopen(name_file_descompress, "wb");
 
-		if (file == NULL)
-			printf("ERRO! Dados inválidos, verifique se o arquivo de entrada foi digitado corretamente e tente novamente.");
-
+		if (file == NULL) {
+			printf("\n*********************************************************\n");
+			printf("ERRO! Dados inválidos, verifique se o arquivo de entrada \n"
+					"foi digitado corretamente e tente novamente.");
+			printf("\n*********************************************************");
+		}
 		else {
 			//DESCOMPRIMIR ARQUIVO
 			// Tamanho do lixo
@@ -135,10 +141,19 @@ void descompress() {
 			//Escrevendo arquivo descomprimido
 			write_descompress(file, file_descompress, search_tree(file, huff_tree),
 					size_tree, trash);
+			fclose(file_descompress);
+			fclose(file);
+			printf("\n*********************************************\n");
+			printf("[SUCESSO] Arquivo descomprimido com êxito!");
+			printf("\n*********************************************");
 		}
     }
     else
     {
-    	printf("ERRO! O arquivo não possui a extensão .huff! Não será possível descompactá-lo");
+		printf("\n*********************************************\n");
+    	printf("ERRO! O arquivo não possui a extensão .huff!"
+    			"\nNão será possível descompactá-lo");
+		printf("\n*********************************************");
     }
+    printf("\n-----------------------------------------------------------\n");
 }
