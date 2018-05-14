@@ -75,11 +75,13 @@ void test_create_huffman_tree(void)
 		huffman_tree* node_1 = create_empty_huffman_tree();
 		huffman_tree* node_2 = create_empty_huffman_tree();
 		huffman_tree* node_3 = create_empty_huffman_tree();
+		//huffman_tree* node_4 = create_empty_huffman_tree();
 		unsigned char item1 = 'A', item2 = 'B', item3 = 'C';
 	//ACT
 		node_2 = create_huffman_tree(x, &item2, NULL, NULL, NULL);
 		node_3 = create_huffman_tree(y, &item3, NULL, NULL, NULL);
 	//ASSERT
+		//CU_ASSERT_PTR_NOT_NULL(node_4);
 		CU_ASSERT_PTR_NOT_NULL(node_2);
 		CU_ASSERT_PTR_NOT_NULL(node_3);
 	//NEW ACT
@@ -308,7 +310,7 @@ int main(void)
 			CU_cleanup_registry();
 			return CU_get_error();
 		}
-	//Adicionado suite 1
+	//Adicionado suite 2
 		P_hufffman_tree = CU_add_suite("test_create_huffman_tree", inicial, final);
 		if (P_hufffman_tree == NULL)
 		{
