@@ -141,11 +141,11 @@ void descompress() {
 			//Escrevendo arquivo descomprimido
 			write_descompress(file, file_descompress, search_tree(file, huff_tree),
 					size_tree, trash);
+			printf("\n*********************************************\n");
+					printf("[SUCESSO] Arquivo descomprimido com êxito!");
+					printf("\n*********************************************");
 			fclose(file_descompress);
 			fclose(file);
-			printf("\n*********************************************\n");
-			printf("[SUCESSO] Arquivo descomprimido com êxito!");
-			printf("\n*********************************************");
 		}
     }
     else
